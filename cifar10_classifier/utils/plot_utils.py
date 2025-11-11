@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import os
 
-def plot_metrics(train_losses, val_losses, val_accs, show=False, save_path=None):
+def plot_metrics(train_losses, val_losses, val_accs, show=False, save_path=None) -> None:
     epochs = range(1, len(train_losses) + 1)
 
     plt.figure(figsize=(10, 4))

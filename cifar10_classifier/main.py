@@ -10,7 +10,7 @@ from utils.search_utils import hyperparameter_search
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def main():
+def main() -> None:
     
     print("--- Starting the classifier ---")
     train_loader, val_loader, test_loader = get_dataloaders(batch_size=128)

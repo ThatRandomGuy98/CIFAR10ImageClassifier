@@ -1,6 +1,7 @@
 import itertools
 import torch
 from copy import deepcopy
+from typing import Dict, Any
 
 def hyperparameter_search(
     model_class,
@@ -12,7 +13,7 @@ def hyperparameter_search(
     train_fn,
     epochs=5,
     optimizer_class=torch.optim.Adam
-):
+) -> Dict[str, Any]:
     """
     Performs grid search over the given hyperparameter combinations.
     Returns the best model state, params, validation accuracy, and metrics history.
@@ -21,7 +22,7 @@ def hyperparameter_search(
     best_params = None
     best_model_state = None
     best_train_history = None  
-
+    # --- Iterate over all possible hyperparameter combinations ---
     for lr, wd, drop in itertools.product(param_grid["lr"], param_grid["wd"], param_grid["drop"]):
         print(f"\n--- Testing configuration: lr={lr}, wd={wd}, dropout={drop} ---")
         model = model_class(dropout=drop).to(device)
@@ -37,14 +38,14 @@ def hyperparameter_search(
             device=device
         )
 
-        final_acc = val_accs[-1]
+        final_acc = val_accs[-1]    #fetches the accuracy of the final epoch
         print(f"Final Validation Accuracy: {final_acc:.2f}%")
 
         # Store the best configuration
         if final_acc > best_val_acc:
             best_val_acc = final_acc
             best_params = {"lr": lr, "wd": wd, "drop": drop}
-            best_model_state = deepcopy(model.state_dict())
+            best_model_state = deepcopy(model.state_dict()) # deep copy to avoid reference overwrite
             best_train_history = (train_losses, val_losses, val_accs)
 
     print("\nBest hyperparameters found:")

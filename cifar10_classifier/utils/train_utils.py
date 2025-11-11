@@ -1,6 +1,14 @@
 import torch
 
-def train_and_validate(model, train_loader, val_loader, epochs, criterion, optimizer, device):
+def train_and_validate(
+    model,
+    train_loader,
+    val_loader,
+    epochs,
+    criterion,
+    optimizer,
+    device
+    ) -> tuple[list[float], list[float], list[float]]:
     train_losses, val_losses, val_accs = [], [], []
     for epoch in range(epochs):
         model.train()  #by setting the model to training mode we enable dropout and bacth updaters

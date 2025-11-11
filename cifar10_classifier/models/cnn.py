@@ -5,11 +5,7 @@ import torch.nn.functional as F
     
     
 class CNN(nn.Module):
-    """
-    A simple Convolutional Neural Network for CIFAR-10 classification.
-    Input: 3x32x32 images
-    Output: 10 class logits
-    """
+   
     def __init__(self, dropout=0.25):
         super(CNN, self).__init__()
         

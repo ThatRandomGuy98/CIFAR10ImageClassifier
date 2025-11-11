@@ -1,6 +1,6 @@
 import torch
 
-def test_loop(model, test_loader, device):
+def test_loop(model, test_loader, device) -> float:
     model.eval()
     correct, total = 0, 0
     
