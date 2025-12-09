@@ -39,7 +39,7 @@ def hyperparameter_search(
         )
 
         final_acc = val_accs[-1]    #fetches the accuracy of the final epoch
-        print(f"Final Validation Accuracy: {final_acc:.2f}%")
+        print(f">>>Final Validation Accuracy: {final_acc:.2f}%")
 
         # Store the best configuration
         if final_acc > best_val_acc:

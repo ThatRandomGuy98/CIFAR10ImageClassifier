@@ -42,9 +42,9 @@ def get_dataloaders(batch_size=128) -> tuple[DataLoader, DataLoader, DataLoader]
     ])
 
     dataset = datasets.CIFAR10(
-        root=ROOT_DIR, 
+        root=ROOT_DIR,
         train=True, 
-        download=False, 
+        download=False,
         transform=None
         )
     #Train size -> 90% & Val size -> 10% split randomly among the dataset
