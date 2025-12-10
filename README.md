@@ -1,91 +1,159 @@
-# About this project
+# CIFAR-10 Image Classifier (PyTorch)
 
-In this model we create a simple CNN from scratch to classify image data. We're using the CIFAR10 dataset, popular amongst computer vision models. It has 10 classes, including vehicles and animals.  
-The dataset can be downloaded using the commented part of the code after the initial set up (be sure to update the `ROOT_DIR` to your own directory). If you already have the dataset downloaded, it gets fetched from the `ROOT_DIR`. The dataset is divided into 2 parts: train and test.  
-We start by defining transformers, one for the training data and one for validation and test data.
+This subfolder contains a **from-scratch CNN** built with **PyTorch** to classify images from the **CIFAR-10** dataset (10 classes of 32×32 RGB images such as airplanes, cats, trucks, etc.).
 
-#### For training data:
-* Adding random cropping to the image  
-* Randomly flips the image horizontally with 50% chance  
-* Converts the image to a torch tensor  
-* Normalizes the tensor with `mean=[0.4914, 0.4822, 0.4465]`, `std=[0.2470, 0.2435, 0.2616]`, which are known metrics for the data used  
-
-#### For the test data:
-* Converts the image to a torch tensor  
-* Normalizes the tensor with `mean=[0.4914, 0.4822, 0.4465]`, `std=[0.2470, 0.2435, 0.2616]`, which are known metrics for the data used  
-
-We do an extra split, leaving out 10% of the training data for validation. With now 3 datasets — training, validation and testing — we make our data loaders to be used in the model.
+The goal of the project is **learning and experimentation**:
+- Build and understand a custom CNN architecture
+- Apply standard data augmentation and normalization
+- Implement a clean **training + validation + test** pipeline
+- Perform **manual hyperparameter search** (learning rate, weight decay, dropout)
+- Visualize training and validation curves to reason about under/overfitting
 
 ---
 
-## CNN
+## 1. Dataset
 
-A simple CNN with:
-* 3 convolutional layers with `kernel_size = 3` and `padding = 1`  
-* 3 normalization layers for each previous layer  
-* added pooling with `kernel_size = 2`, `stride = 2`  
-* 2 fully connected layers  
-* added a dropout layer with `p=0.25` by default, but can be changed when calling the class  
+The project uses **CIFAR-10** from `torchvision.datasets`.
 
-#### Forward pass:
-* used ReLU as an activation function after each convolutional layer  
-* used max pooling after each convolutional block to reduce spatial dimensions  
-* flattened the output before passing through the fully connected layers  
-* applied dropout regularization before the final layer to prevent overfitting  
-* the final layer outputs logits for 10 classes corresponding to CIFAR10 categories  
+- **Train set:** 50,000 images  
+- **Test set:** 10,000 images  
+- **Classes (10):** airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck
 
----
+The dataset is downloaded or loaded from a local directory configured in the code via a `ROOT_DIR` variable.
 
-## Training and validation
+### 1.1. Transforms
 
-The training process is handled by the `train_and_validate()` function. For each epoch, the model:
-* runs a forward pass through the network  
-* computes the loss using the CrossEntropyLoss criterion  
-* performs backpropagation and updates weights through the Adam optimizer  
-* averages the training loss for that epoch  
+Two separate transform pipelines are used:
 
-After training, the model enters evaluation mode and runs through the validation data. It computes both validation loss and accuracy for each epoch. At the end of training, the function plots:
-* training vs. validation loss curves  
-* validation accuracy per epoch  
+**Training transforms:**
+- Random crop with padding
+- Random horizontal flip (50% chance)
+- Convert to tensor
+- Normalize with known CIFAR-10 stats:  
+  `mean = [0.4914, 0.4822, 0.4465]`  
+  `std  = [0.2470, 0.2435, 0.2616]`
 
-These plots are useful to monitor convergence and detect overfitting or underfitting trends.
+**Validation / Test transforms:**
+- Convert to tensor
+- Same normalization as above
 
----
+The original train set is further split into:
+- **Train set**
+- **Validation set** (10% of the original train set)
 
-## Hyperparameter tuning
-
-The script tests different configurations of learning rate, weight decay, and dropout using itertools’ product function. For each combination:
-* the model is initialized with the given dropout  
-* Adam optimizer is set with the current learning rate and weight decay  
-* model is trained for 5 epochs  
-* the final validation accuracy is recorded  
-
-After iterating through all combinations, the configuration achieving the highest validation accuracy is printed, along with its parameters. The model weights corresponding to that configuration are saved as the best model state.
+You end up with 3 dataloaders:
+- `train_loader`
+- `val_loader`
+- `test_loader`
 
 ---
 
-## Testing phase
+## 2. Model Architecture (CNN)
 
-Once the best hyperparameters are found, the model is reloaded with the best configuration and evaluated on the test set using the `test_loop()` function.  
-This function:
-* sets the model to evaluation mode  
-* iterates through the test data without computing gradients  
-* calculates the total accuracy over the full dataset  
+The classifier is a **custom convolutional neural network** with:
 
-The final test accuracy is printed at the end, providing an unbiased estimate of the model’s generalization performance.
+- **3 convolutional blocks**
+  - `kernel_size = 3`, `padding = 1`
+  - Each conv followed by a normalization layer
+  - Max pooling (`kernel_size = 2`, `stride = 2`) to downsample feature maps
+- **2 fully connected (linear) layers**
+- **Dropout layer**
+  - Default `p = 0.25` (configurable when constructing the model)
+
+### 2.1. Forward pass
+
+The forward pass follows this pattern:
+
+1. Convolution → BatchNorm/Norm → ReLU → MaxPool (repeated for each block)  
+2. Flatten the convolutional output  
+3. Fully connected layer(s)  
+4. Dropout before the final layer for regularization  
+5. Output logits for **10 classes** (the CIFAR-10 categories)
+
+The loss function used is **Cross Entropy Loss**, which is standard for multi-class classification.
 
 ---
 
-## Results and interpretation
+## 3. Training & Validation
 
-The model’s performance depends on the chosen hyperparameters and number of epochs. Typically, with a simple CNN and limited tuning, the accuracy ranges between 70% and 80% on CIFAR10.  
+Training is handled by a function similar to `train_and_validate(...)` which:
 
-To further improve results, additional steps could include:
-* increasing the number of epochs  
-* adding more convolutional layers  
-* experimenting with learning rate schedules  
-* introducing data augmentations like color jitter or rotation  
-* using pretrained models (e.g., ResNet, VGG) for transfer learning  
+For each epoch:
 
+1. **Training phase**
+   - Set model to `train()` mode
+   - Loop over `train_loader`
+   - Forward pass
+   - Compute loss (`nn.CrossEntropyLoss`)
+   - Backprop (`loss.backward()`)
+   - Update weights (`optimizer.step()`)
+   - Track average training loss
 
+2. **Validation phase**
+   - Set model to `eval()` mode
+   - Disable gradients with `torch.no_grad()`
+   - Loop over `val_loader`
+   - Compute validation loss
+   - Compute validation accuracy
+   - Track metrics per epoch
 
+At the end, the script produces plots such as:
+- **Training vs validation loss**
+- **Validation accuracy over epochs**
+
+These curves make it easier to reason about:
+- Underfitting (both losses high)
+- Overfitting (train loss low, val loss high)
+- Whether more epochs or regularization might help
+
+---
+
+## 4. Hyperparameter Search
+
+The project performs a **manual grid search** over a small hyperparameter space using `itertools.product`, testing different combinations of:
+
+- Learning rate (`lr`)
+- Weight decay (`wd`)
+- Dropout probability (`dropout`)
+
+For each combination:
+
+1. A fresh model is instantiated (with the chosen dropout)
+2. An optimizer (e.g. Adam) is created with the current `lr` and `weight_decay`
+3. The model is trained for a fixed number of epochs (e.g. 5)
+4. Final **validation accuracy** is recorded
+
+At the end of the search:
+
+- The **best configuration** is identified (highest validation accuracy)
+- The corresponding **model `state_dict`** is saved so it can be reloaded later for testing
+
+This acts as a simple but effective hyperparameter tuning loop.
+
+---
+
+## 5. Test Phase
+
+After picking the best hyperparameters, the script:
+
+1. Recreates the model with the best configuration
+2. Loads the saved best weights
+3. Evaluates on the **test set** using a `test_loop(...)` function:
+
+The test loop typically:
+
+- Sets the model to evaluation mode
+- Loops over `test_loader` without gradients
+- Computes predictions and compares to labels
+- Accumulates the total number of correct predictions
+- Prints **final test accuracy** as an estimate of generalization
+
+---
+
+## 6. How to Run
+
+### 6.1. Clone the repository
+
+```bash
+git clone https://github.com/ThatRandomGuy98/CIFAR10ImageClassifier.git
+cd CIFAR10ImageClassifier/cifar10_classifier
