@@ -9,11 +9,13 @@ from utils.plot_utils import plot_metrics
 from utils.search_utils import hyperparameter_search
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+ROOT_DIR = r"C:\Users\delga\Documents\programming\datasets"
+
 
 def main() -> None:
     
     print("--- Starting the classifier ---")
-    train_loader, val_loader, test_loader = get_dataloaders(batch_size=128)
+    train_loader, val_loader, test_loader = get_dataloaders(root_dir=ROOT_DIR)
     param_grid = {
         "lr": [1e-2, 5e-3, 1e-3],
         "wd": [1e-3, 1e-4, 1e-5],

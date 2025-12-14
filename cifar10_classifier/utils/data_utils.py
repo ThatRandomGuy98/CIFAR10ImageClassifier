@@ -1,69 +1,67 @@
 import os
+import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, random_split
-import torch
-import matplotlib.pyplot as plt
-ROOT_DIR = r"C:\Users\delga\Documents\programming\datasets"
-
-# cifar10_dir = os.path.join(ROOT_DIR, "cifar-10-batches-py")         #CIFAR10
-# if not os.path.exists(cifar10_dir):
-#     print("Downloading CIFAR10...")
-#     trainCIFAR10 = datasets.CIFAR10(root=ROOT_DIR, train=True, download=True)
-#     testCIFAR10 = datasets.CIFAR10(root=ROOT_DIR, train=False, download=True)
-# else:
-#     print("CIFAR10 already exists, loading without download...")
-#     trainCIFAR10 = datasets.CIFAR10(root=ROOT_DIR, train=True, download=False)
-#     testCIFAR10 = datasets.CIFAR10(root=ROOT_DIR, train=False, download=False)
 
 
-# mnist_dir = os.path.join(ROOT_DIR, "MNIST")             #MNIST
-# if not os.path.exists(mnist_dir):
-#     print("Downloading MNIST...")
-#     trainMNIST = datasets.MNIST(root=ROOT_DIR, train=True, download=True)
-#     testMNIST = datasets.MNIST(root=ROOT_DIR, train=False, download=True)
-# else:
-#     print("MNIST already exists, loading without download...")
-#     trainMNIST = datasets.MNIST(root=ROOT_DIR, train=True, download=False)
-#     testMNIST = datasets.MNIST(root=ROOT_DIR, train=False, download=False)
+def get_train_data(root_dir: str, download: bool = False) -> datasets.CIFAR10:
+    cifar10_dir = os.path.join(root_dir, "cifar-10-batches-py")
+    need_download = download or (not os.path.exists(cifar10_dir))
+    if need_download:
+        print("Downloading CIFAR10 train dataset...")
+    else:
+        print("CIFAR10 train dataset found, loading...")
 
-def get_dataloaders(batch_size=128) -> tuple[DataLoader, DataLoader, DataLoader]:
+    return datasets.CIFAR10(root=root_dir, train=True, download=need_download, transform=None)
+
+
+def get_test_data(root_dir: str, download: bool = False, transform=None) -> datasets.CIFAR10:
+    cifar10_dir = os.path.join(root_dir, "cifar-10-batches-py")
+    need_download = download or (not os.path.exists(cifar10_dir))
+    if need_download:
+        print("Downloading CIFAR10 test dataset...")
+    else:
+        print("CIFAR10 test dataset found, loading...")
+
+    return datasets.CIFAR10(root=root_dir, train=False, download=need_download, transform=transform)
+
+
+def get_dataloaders(root_dir: str, batch_size: int = 128, download: bool = False, seed: int = 42):
+
     train_transforms = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),   #crops the image at a random location
-        transforms.RandomHorizontalFlip(),      #flips the image horizontally based on a probability, 0.5 by default
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],     #known cifar10 metrics
-                             std=[0.2470, 0.2435, 0.2616])
+        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                             std=[0.2470, 0.2435, 0.2616]),
     ])
 
     val_transforms = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
-                             std=[0.2470, 0.2435, 0.2616])
+                             std=[0.2470, 0.2435, 0.2616]),
     ])
 
-    dataset = datasets.CIFAR10(
-        root=ROOT_DIR,
-        train=True, 
-        download=False,
-        transform=None
-        )
-    #Train size -> 90% & Val size -> 10% split randomly among the dataset
-    train_size = int(0.9 * len(dataset))  
+    # Load train dataset without applying any transforms, doing that in the next step
+    dataset = get_train_data(root_dir=root_dir, download=download)
+    train_size = int(0.9 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(
-        dataset, 
-        [train_size, val_size], 
-        generator=torch.Generator().manual_seed(42)
-        )
-    #Apply the transformers
-    train_dataset.dataset.transform = train_transforms
-    val_dataset.dataset.transform = val_transforms
+        dataset,
+        [train_size, val_size],
+        generator=torch.Generator().manual_seed(seed),
+    )
 
-    test_dataset = datasets.CIFAR10(root=ROOT_DIR, train=False, download=False, transform=val_transforms)
+    # IMPORTANT: random_split keeps references to the same underlying dataset object.
+    # If we set dataset.transform, it affects BOTH splits, and we end up applying training transforms to validation data
+    # So we "clone" by creating two separate CIFAR10 objects:
+    train_dataset.dataset = datasets.CIFAR10(root=root_dir, train=True, download=False, transform=train_transforms)
+    val_dataset.dataset   = datasets.CIFAR10(root=root_dir, train=True, download=False, transform=val_transforms)
+    test_dataset = get_test_data(root_dir=root_dir, download=download, transform=val_transforms)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    pin_memory = torch.cuda.is_available()
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,  num_workers=2, pin_memory=pin_memory)
+    val_loader   = DataLoader(val_dataset,   batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=pin_memory)
+    test_loader  = DataLoader(test_dataset,  batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=pin_memory)
 
     return train_loader, val_loader, test_loader
-
