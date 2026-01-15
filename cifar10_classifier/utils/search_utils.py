@@ -39,7 +39,7 @@ def hyperparameter_search(
         )
 
         final_acc = val_accs[-1]    #fetches the accuracy of the final epoch
-        print(f">>>Final Validation Accuracy: {final_acc:.2f}%")
+        print(f">>> Final Validation Accuracy: {final_acc:.2f}%")
 
         # Store the best configuration
         if final_acc > best_val_acc:
@@ -48,7 +48,7 @@ def hyperparameter_search(
             best_model_state = deepcopy(model.state_dict()) # deep copy to avoid reference overwrite
             best_train_history = (train_losses, val_losses, val_accs)
 
-    print("\nBest hyperparameters found:")
+    print("\n>>> Best hyperparameters found:")
     print(f"   Learning rate: {best_params['lr']}")
     print(f"   Weight decay:  {best_params['wd']}")
     print(f"   Dropout:       {best_params['drop']}")

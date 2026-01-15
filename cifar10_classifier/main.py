@@ -1,15 +1,24 @@
 import torch
 from torch import nn
-
+#--------------------------------------------
 from models.cnn import CNN
-from utils.data_utils import get_dataloaders
+from utils.data_utils import get_dataloaders, get_env
 from utils.train_utils import train_and_validate
 from utils.test_utils import test_loop
 from utils.plot_utils import plot_metrics
 from utils.search_utils import hyperparameter_search
-
+#---------------------------------------------
+# import os
+# from dotenv import load_dotenv
+# load_dotenv()
+# DATA_ROOT = os.getenv("DATA_ROOT")
+# print("DATA_ROOT:", os.getenv("DATA_ROOT"))
+# if not DATA_ROOT:
+#     raise EnvironmentError(
+#         "Could not find DATA_ROOT, make sure the .env file is ok"
+#     )
+ROOT_DIR = get_env(name="DATA_ROOT")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ROOT_DIR = r"C:\Users\delga\Documents\programming\datasets"
 
 
 def main() -> None:
@@ -36,10 +45,10 @@ def main() -> None:
     print("\nPlotting best model metrics...")
     train_losses, val_losses, val_accs = results["best_train_history"]
     plot_metrics(
-        train_losses, 
-        val_losses, 
-        val_accs, 
-        save_path="experiments/figures/best_train_val.png", 
+        train_losses,
+        val_losses,
+        val_accs,
+        save_path="experiments/figures/best_train_val.png",
         show=False
         )
 

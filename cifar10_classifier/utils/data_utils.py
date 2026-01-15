@@ -2,7 +2,23 @@ import os
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, random_split
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
+
+def get_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise EnvironmentError(f"Missing environment variable: {name}")
+    return value
+
+# DATA_ROOT = os.getenv("DATA_ROOT")
+# print("DATA_ROOT:", os.getenv("DATA_ROOT"))
+# if not DATA_ROOT:
+#     raise EnvironmentError(
+#         "Could not find DATA_ROOT, make sure the .env file is ok"
+#     )
 
 def get_train_data(root_dir: str, download: bool = False) -> datasets.CIFAR10:
     cifar10_dir = os.path.join(root_dir, "cifar-10-batches-py")
