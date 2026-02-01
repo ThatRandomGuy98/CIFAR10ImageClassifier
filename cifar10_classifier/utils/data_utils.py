@@ -1,24 +1,18 @@
 import os
 import torch
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
+from sklearn.model_selection import StratifiedShuffleSplit
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_env(name: str) -> str:
-    value = os.getenv(name)
+def get_env(var_name: str) -> str:
+    value = os.getenv(var_name)
     if not value:
-        raise EnvironmentError(f"Missing environment variable: {name}")
+        raise EnvironmentError(f"Missing environment variable: {var_name}")
     return value
-
-# DATA_ROOT = os.getenv("DATA_ROOT")
-# print("DATA_ROOT:", os.getenv("DATA_ROOT"))
-# if not DATA_ROOT:
-#     raise EnvironmentError(
-#         "Could not find DATA_ROOT, make sure the .env file is ok"
-#     )
 
 def get_train_data(root_dir: str, download: bool = False) -> datasets.CIFAR10:
     cifar10_dir = os.path.join(root_dir, "cifar-10-batches-py")
@@ -42,12 +36,27 @@ def get_test_data(root_dir: str, download: bool = False, transform=None) -> data
     return datasets.CIFAR10(root=root_dir, train=False, download=need_download, transform=transform)
 
 
+def stratified_split(dataset: datasets.CIFAR10, val_ratio: float = 0.1, seed: int = 22) -> datasets.CIFAR10:
+    targets = dataset.targets
+    splitter = StratifiedShuffleSplit(
+        n_splits=1,
+        test_size=val_ratio,
+        random_state=seed
+    )
+    
+    train_idx, val_idx = next(splitter.split(X=targets, y=targets))
+    train_dataset = Subset(dataset, train_idx)
+    val_dataset = Subset(dataset, val_idx)
+    return train_dataset, val_dataset
+
+
 def get_dataloaders(root_dir: str, batch_size: int = 128, download: bool = False, seed: int = 42):
 
     train_transforms = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
+        transforms.RandomErasing(p=0.25),
         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
                              std=[0.2470, 0.2435, 0.2616]),
     ])
@@ -60,13 +69,9 @@ def get_dataloaders(root_dir: str, batch_size: int = 128, download: bool = False
 
     # Load train dataset without applying any transforms, doing that in the next step
     dataset = get_train_data(root_dir=root_dir, download=download)
-    train_size = int(0.9 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(
-        dataset,
-        [train_size, val_size],
-        generator=torch.Generator().manual_seed(seed),
-    )
+    # train_size = int(0.9 * len(dataset))
+    # val_size = len(dataset) - train_size
+    train_dataset, val_dataset = stratified_split(dataset=dataset)
 
     # IMPORTANT: random_split keeps references to the same underlying dataset object.
     # If we set dataset.transform, it affects BOTH splits, and we end up applying training transforms to validation data

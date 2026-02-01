@@ -38,8 +38,9 @@ def hyperparameter_search(
             device=device
         )
 
-        final_acc = val_accs[-1]    #fetches the accuracy of the final epoch
-        print(f">>> Final Validation Accuracy: {final_acc:.2f}%")
+        best_epoch = max(range(len(val_accs)), key=lambda i: val_accs[i])    #fetches the accuracy of the best epoch
+        final_acc = val_accs[best_epoch]    #fetches the accuracy of the best epoch
+        print(f">>> Best Validation Accuracy: {final_acc:.2f}%")
 
         # Store the best configuration
         if final_acc > best_val_acc:
